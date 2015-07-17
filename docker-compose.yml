@@ -1,0 +1,13 @@
+data:
+  image: ubuntu
+  volumes:
+    - /data:/data
+  command: true
+
+web:
+  image: ubuntu
+  volumes_from:
+    - data
+  ports:
+    - "80:80"
+  command: bash -c "while true; do cat /data/greet.html | nc -l 80; done"

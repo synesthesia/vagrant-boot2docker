@@ -1,0 +1,226 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure(2) do |config|
+  # The most common configuration options are documented and commented below.
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
+
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://atlas.hashicorp.com/search.
+  # config.vm.box = "ubuntu/trust64"
+  config.vm.box = "AlbanMontaigu/boot2docker"
+
+
+  # The AlbanMontaigu/boot2docker box has not been set up as a Vagrant
+  # 'base box', so it is necessary to specify how to SSH in.
+  config.ssh.username = "docker"
+  config.ssh.password = "tcuser"
+  config.ssh.insert_key = true
+
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+
+
+  # Create a private network, which allows host-only access to the machine
+  # using a specific IP.
+  # config.vm.network "private_network", ip: "192.168.33.10"
+  config.vm.network "private_network", ip: "192.168.70.249"
+
+
+  # Create a public network, which generally matched to bridged network.
+  # Bridged networks make the machine appear as another physical device on
+  # your network.
+  # config.vm.network "public_network"
+
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+
+  # Synced folders for container data.
+  config.vm.synced_folder "./data", "/data",
+   mount_options: ["uid=999","gid=999"]
+
+
+
+
+  # Note:
+  #   By default Vagrant syncs the project directory to /vagrant. This
+  #   Vagrantfile assumes this behavior, and also assumes that the
+  #   docker-compose.yml will then be located at /vagrant/docker-compose.yml
+  if ENV['DOCKER_IMAGEDIR_PATH']
+    config.vm.synced_folder ENV['DOCKER_IMAGEDIR_PATH'], "/preload-images"
+  else
+    # The escape sequences are for colored output
+    sred="\033[31m"
+    sgreen="\033[32m"
+    snorm="\033[0m"
+
+    puts sred + "Set " + sgreen + "DOCKER_IMAGEDIR_PATH " + sred +
+         "in your environment to import local tar archives\ncontaining " +
+         "images into docker's image-store" + snorm
+  end
+  
+  # A fix for speed issues with DNS resolution:
+  #   http://serverfault.com/questions/453185/vagrant-virtualbox-dns-10-0-2-3-not-working?rq=1
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+  end
+
+
+  # This provisioner runs on the first `vagrant up`.
+  config.vm.provision "install", type: "shell", inline: <<-SHELL
+     # Copy the home directory to persistent storage
+     mkdir /mnt/sda2/home
+     cp -r /home/docker /mnt/sda2/home
+     chown -R docker.staff /mnt/sda2/home/docker
+
+     #Switcheroo 
+     mount --bind /mnt/sda2/home/docker /home/docker
+     cd /home/docker
+
+     # Download Python and Pip
+     mkdir /mnt/sda2/tce-persist
+     chown docker.staff /mnt/sda2/tce-persist
+     chmod 775 /mnt/sda2/tce-persist
+
+     mount --bind /mnt/sda2/tce-persist /mnt/sda2/tmp/tce/optional
+     sudo -u tc tce-load -w python
+     umount /mnt/sda2/tmp/tce/optional
+
+     mkdir /mnt/sda2/pip
+     cd /mnt/sda2/pip
+
+     curl https://bootstrap.pypa.io/get-pip.py > get-pip.py
+     chmod u+x get-pip.py
+
+     # Turn inter-container communication off
+     echo 'EXTRA_ARGS="-icc=false"' >> /var/lib/boot2docker/profile
+
+     /etc/init.d/docker stop
+     iptables -F
+     /etc/init.d/docker start
+
+     # Convenience
+     if mount | grep /vagrant 1>/dev/null; then
+       ln -s /vagrant /home/docker/vagrant
+       ln -s /vagrant/docker-compose.yml /home/docker/docker-compose.yml
+     fi
+   SHELL
+
+
+  # This provisioner runs on every `vagrant reload' (as well as the first
+  # `vagrant up`), reinstalling from local directories
+  config.vm.provision "recompose", type: "shell",
+   run: "always", inline: <<-SHELL
+     #Switcheroo 
+     mount --bind /mnt/sda2/home/docker /home/docker
+     cd /home/docker
+
+     # Install python and Docker-Compose
+     mount --bind /mnt/sda2/tce-persist /mnt/sda2/tmp/tce/optional
+     sudo -u tc tce-load -ic python
+     umount /mnt/sda2/tmp/tce/optional
+
+     cd /mnt/sda2/pip
+     echo "Running get-pip.py"
+     ./get-pip.py
+
+     pip install -b build -t install -U docker-compose
+
+     # Mixing of tabs and spaces is intentional (for the <<- operator)
+     cat <<- EOF > /usr/local/bin/docker-compose
+	#!/usr/local/bin/python
+
+	# -*- coding: utf-8 -*-
+	import re
+	import sys
+
+        # Need to point the PYTHONPATH at the right place
+	sys.path.append("/mnt/sda2/pip/install")
+
+	from compose.cli.main import main
+
+	if __name__ == '__main__':
+	    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?', '', sys.argv[0])
+	    sys.exit(main())
+	EOF
+
+     chmod 755 /usr/local/bin/docker-compose
+
+     # Preload docker with images (but only if the synced folder is mounted)
+     if mount | grep /preload-images 1>/dev/null; then
+       echo "Preloading the docker-daemon with images"
+       cd /preload-images
+
+       allready_images=$(docker images -q)
+
+       for file in $(ls | egrep '.tar$' ); do
+         name=$( basename $file .tar )
+
+         # Scan through the images we have and check if they are already loaded
+         for i in $allready_images; do 
+           if [[ $i == $name ]]; then
+             # Skip this file
+             echo "--> Skipping $name.tar (already loaded)"
+             continue 2
+           fi
+         done
+
+         echo "--> Loading $name.tar"
+         docker load < $file
+       done
+     fi
+
+     # Run docker-compose (which will update preloaded images, and
+     # pulls any images not preloaded)
+     cd /vagrant
+     docker-compose up -d
+
+     # Update the preload image directory with any new (or changed) images
+     if mount | grep /preload-images 1>/dev/null; then
+       echo "Adding images in /preload-images."
+       cd /preload-images
+
+       # First, construct a space-separated list of the images IDs that are
+       # running as a result of docker-compose
+       running=$(docker ps -q )
+       runids=""
+
+       for r in $running; do
+         newid=$(docker inspect --format='{{.Image}}' $r)
+
+         # The id must be truncated to the standard 12 characters
+         runids="$runids "$(echo $newid | egrep -o '^[0-9a-f]{12}')
+       done
+       
+       for i in $(docker images -q); do
+         if ! [[ -f $i.tar ]]; then
+           echo "--> Saving $i.tar"
+           docker save -o $i.tar $i
+         else
+           # Update the timestamps on the ones which have already been exported
+           # but which still used by the docker-compose.yml
+           for j in $runids; do
+             if [[ $j == $i ]]; then
+               echo "--> skipping $i.tar (already exists: in-use, timestamp updated)"
+               touch $i.tar
+               continue 2
+             fi
+           done
+
+           echo "--> skipping $i.tar (already exists: unused)"
+         fi
+       done
+     fi
+  SHELL
+end
