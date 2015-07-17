@@ -67,8 +67,10 @@ Vagrant.configure(2) do |config|
   # argument is a set of non-required options.
 
   # Synced folders for container data.
+
   config.vm.synced_folder "./data", "/data",
-   mount_options: ["uid=999","gid=999"]
+   # 33 is the www-data user/group in the ubuntu container
+   mount_options: ["uid=33","gid=33"] 
 
 
 
@@ -133,7 +135,6 @@ Vagrant.configure(2) do |config|
      # Convenience
      if mount | grep /vagrant 1>/dev/null; then
        ln -s /vagrant /home/docker/vagrant
-       ln -s /vagrant/docker-compose.yml /home/docker/docker-compose.yml
      fi
    SHELL
 
