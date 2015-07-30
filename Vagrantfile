@@ -34,7 +34,7 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   # config.vm.box = "ubuntu/trust64"
   config.vm.box = "AlbanMontaigu/boot2docker"
-  config.vm.box_version = "= 1.7.0"
+  config.vm.box_version = "= 1.7.1"
 
   # The AlbanMontaigu/boot2docker box has not been set up as a Vagrant
   # 'base box', so it is necessary to specify how to SSH in.
