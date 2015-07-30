@@ -2,7 +2,7 @@ data:
   image: ubuntu
   volumes:
     - /data:/data
-  command: true
+  command: "true"
 
 web:
   image: ubuntu
