@@ -35,7 +35,6 @@ Vagrant.configure(2) do |config|
   # config.vm.box = "ubuntu/trust64"
   config.vm.box = "AlbanMontaigu/boot2docker"
 
-
   # The AlbanMontaigu/boot2docker box has not been set up as a Vagrant
   # 'base box', so it is necessary to specify how to SSH in.
   config.ssh.username = "docker"
@@ -125,8 +124,13 @@ Vagrant.configure(2) do |config|
      curl https://bootstrap.pypa.io/get-pip.py > get-pip.py
      chmod u+x get-pip.py
 
-     # Turn inter-container communication off
-     echo 'EXTRA_ARGS="-icc=false"' >> /var/lib/boot2docker/profile
+     # Configure boot2docker's running of docker
+     # (Mixing of tabs and spaces is intentional, used for the <<- operator)
+     cat <<-EOF >> /var/lib/boot2docker/profile
+	EXTRA_ARGS="-icc=false"
+	DOCKER_TLS="no"
+
+	EOF
 
      /etc/init.d/docker stop
      iptables -F
@@ -229,11 +233,12 @@ Vagrant.configure(2) do |config|
            echo "--> Saving $i.tar"
            docker save -o $i.tar $i
          else
-           # Update the timestamps on the ones which have already been exported
-           # but which still used by the docker-compose.yml
+           # Update the timestamps on the ones which have already been
+           # exported but which still used by the docker-compose.yml
            for j in $runids; do
              if [[ $j == $i ]]; then
-               echo "--> skipping $i.tar (already exists: in-use, timestamp updated)"
+               echo "--> skipping $i.tar " \
+                 "(already exists: in-use, timestamp updated)"
                touch $i.tar
                continue 2
              fi
@@ -243,5 +248,29 @@ Vagrant.configure(2) do |config|
          fi
        done
      fi
+
+     # Finally, propose possible ENV variable exports
+     echo " "
+     echo "To connect to docker running on the Vagrant Box,"
+     echo "set your DOCKER_HOST ENV variable:"
+     echo " "
+
+#     regex="[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}"
+#     cat <<-"EOF" > sed_script
+##	/[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}/ {
+##	  s/[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}/\n&/
+##	  s/.*\n//
+#	  s/[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}/&\n/
+#	  s/\n.*//
+#	
+#	  s%.*%  export DOCKER_HOST=tcp://&:2376%
+#	  p
+#	}
+#
+#	# If no match, delete the line
+#	s/\(.*\)/SKIPPED: \1/
+#	EOF
+
+#     ip -4 -o a | grep eth | sed -f sed_script
   SHELL
 end
