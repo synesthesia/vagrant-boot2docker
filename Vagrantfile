@@ -34,6 +34,7 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   # config.vm.box = "ubuntu/trust64"
   config.vm.box = "AlbanMontaigu/boot2docker"
+  config.vm.box_version = "= 1.7.0"
 
   # The AlbanMontaigu/boot2docker box has not been set up as a Vagrant
   # 'base box', so it is necessary to specify how to SSH in.
@@ -250,27 +251,32 @@ Vagrant.configure(2) do |config|
      fi
 
      # Finally, propose possible ENV variable exports
-     echo " "
-     echo "To connect to docker running on the Vagrant Box,"
-     echo "set your DOCKER_HOST ENV variable:"
-     echo " "
+     cat <<-EOF > /docker-connect.sh
+	#!/bin/sh
+	echo " "
+	echo "To connect to docker running on the Vagrant Box,"
+	echo "set your DOCKER_HOST ENV variable, one of:"
+	echo " "
 
-#     regex="[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}"
-#     cat <<-"EOF" > sed_script
-##	/[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}/ {
-##	  s/[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}/\n&/
-##	  s/.*\n//
-#	  s/[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}\.[0-9]\{,3\}/&\n/
-#	  s/\n.*//
-#	
-#	  s%.*%  export DOCKER_HOST=tcp://&:2376%
-#	  p
-#	}
-#
-#	# If no match, delete the line
-#	s/\(.*\)/SKIPPED: \1/
-#	EOF
+	regex='[0-9]\\{,3\\}\\.[0-9]\\{,3\\}\\.[0-9]\\{,3\\}\\.[0-9]\\{,3\\}'
 
-#     ip -4 -o a | grep eth | sed -f sed_script
+	ip -4 -o a | grep eth | sed -e "
+	  /\\$regex/ {
+	    s/\\$regex/\\n&/
+	    s/.*\\n//
+	    s/\\$regex/&\\n/
+	    s/\\n.*//
+
+	    s%.*%  export DOCKER_HOST=tcp://&:2375%
+	    p
+	  }
+
+	  # If no match, delete the line
+          d
+	"
+	EOF
+     chmod u+x /docker-connect.sh
+
+     /docker-connect.sh
   SHELL
 end
