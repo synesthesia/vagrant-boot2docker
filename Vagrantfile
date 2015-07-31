@@ -52,7 +52,7 @@ Vagrant.configure(2) do |config|
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
   # config.vm.network "private_network", ip: "192.168.33.10"
-  config.vm.network "private_network", ip: "192.168.70.249"
+  config.vm.network "private_network", ip: "192.168.70.249", nic_type: "virtio"
 
 
   # Create a public network, which generally matched to bridged network.
@@ -280,7 +280,7 @@ Vagrant.configure(2) do |config|
      /docker-connect.sh
 
      echo " "
-     echo "Or, just use `vagrant ssh` to connect, and run commands"
+     echo "Or, just use 'vagrant ssh' to connect, and run commands"
      echo "from inside the box, e.g.:"
      echo " "
      echo "  vagrant ssh"
