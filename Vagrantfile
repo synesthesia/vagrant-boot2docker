@@ -280,7 +280,7 @@ Vagrant.configure(2) do |config|
      /docker-connect.sh
 
      echo " "
-     echo "Or, just use `vagrant ssh` to connect, and run commands"
+     echo "Or, just use 'vagrant ssh' to connect, and run commands"
      echo "from inside the box, e.g.:"
      echo " "
      echo "  vagrant ssh"
