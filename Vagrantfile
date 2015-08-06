@@ -52,8 +52,12 @@ Vagrant.configure(2) do |config|
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
   # config.vm.network "private_network", ip: "192.168.33.10"
-  config.vm.network "private_network", ip: "192.168.70.249", nic_type: "virtio"
+  #config.vm.network "private_network", ip: "192.168.70.249", nic_type: "virtio"
 
+  config.vm.provider "virtualbox" do |v, override|
+    # Create a private network for accessing VM without NAT
+    override.vm.network "private_network", ip: "192.168.70.249", id: "default-network", nic_type: "virtio"
+  end
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -250,7 +254,7 @@ Vagrant.configure(2) do |config|
        done
      fi
 
-     # Finally, propose possible ENV variable exports
+     # Propose possible ENV variable exports
      cat <<-EOF > /docker-connect.sh
 	#!/bin/sh
 	echo " "
@@ -287,5 +291,10 @@ Vagrant.configure(2) do |config|
      echo "  cd /vagrant"
      echo "  docker-compose ps"
      echo "  docker images"
+
+     # Finally, and importantly, stop all running dhcp clients; this box is
+     # statically configured by Vagrant, and asking for dhcp will just
+     # override the network settings in this Vagrantfile
+     killall udhcpc
   SHELL
 end
