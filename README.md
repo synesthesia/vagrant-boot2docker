@@ -20,7 +20,7 @@ Just clone this repository and run:
     vagrant up
 
 You can then connect to the containerized webserver at
-[http://192.168.70.249](http://192.168.70.249) You can edit data/greet.html and
+[http://192.168.70.249](http://192.168.70.249) You can edit `data/index.html` and
 see the changes reflected after a couple reloads of the page.
 
 The Vagrantfile syncs `data/` in the working directory to `/data` in the
@@ -31,15 +31,16 @@ The working directory with untranslated permissions is also synced to
 `/vagrant` in the box.
 
 Then, docker-compose is run within the Vagrantfile against the sample
-docker-compose.yml to spin up two containers: the a volume container mapping
-`/data` in the vagrant box to `/data` in the container; the second, the
-"webserver" container, grabbing its volumes from the first.
+docker-compose.yml to spin up two containers: the first a volume container
+mapping `/data` in the vagrant box to `/usr/local/apache2/htdocs/` in the
+container; the second, a webserver container, grabbing its volumes from the
+first.
 
 Since the files ownership is translated in the vagrant box, when the containers
 map their volumes to the vagrant box, they see those translated ownerships.
-In the Ubuntu container, 33 is the UID and GID of `www-data`, so the net effect
-is that data files can be edited no matter what the platform or filesystem
-Vagrant is running on, and the container will still run correctly.
+In the webserver container, 33 is the UID and GID of `www-data`, so the net
+effect is that data files can be edited no matter what the platform or
+filesystem Vagrant is running on, and the container will still run correctly.
 
 Rationale
 ---------
