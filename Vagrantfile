@@ -54,6 +54,10 @@ Vagrant.configure(2) do |config|
   # config.vm.network "private_network", ip: "192.168.33.10"
   #config.vm.network "private_network", ip: "192.168.70.249", nic_type: "virtio"
 
+  # These lines override a virtual NIC that the AlbanMontaigu/boot2docker box
+  # creates by default. If you need to change the the box's IP address (which
+  # is necessary to run separate, simulataneous instances of this Vagrantfile),
+  # do it here.
   config.vm.provider "virtualbox" do |v, override|
     # Create a private network for accessing VM without NAT
     override.vm.network "private_network", ip: "192.168.70.249", id: "default-network", nic_type: "virtio"
@@ -294,7 +298,7 @@ Vagrant.configure(2) do |config|
 
      # Finally, and importantly, stop all running dhcp clients; this box is
      # statically configured by Vagrant, and asking for dhcp will just
-     # override the network settings in this Vagrantfile
+     # override the network settings in this Vagrantfile.
      killall udhcpc
   SHELL
 end

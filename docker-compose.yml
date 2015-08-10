@@ -1,13 +1,12 @@
 data:
-  image: ubuntu
+  image: httpd:2.4
   volumes:
-    - /data:/data
+    - /data:/usr/local/apache2/htdocs/
   command: "true"
 
 web:
-  image: ubuntu
+  image: httpd:2.4
   volumes_from:
     - data
   ports:
     - "80:80"
-  command: bash -c "while true; do cat /data/greet.html | nc -l 80; done"
