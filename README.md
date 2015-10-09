@@ -91,7 +91,7 @@ variables necessary to connect. Try them until one works.
 The docker daemon running in the virtual machine will save images you build or
 pull to persistent storage, but if you consistently delete and rebuild the
 virtual machine with `vagrant destroy` and `vagrant up`, it may speed things to
-define `DOCKER_IMAGEDIR_HOME` in your shell's environment. If defined as a path
+define `DOCKER_IMAGEDIR_PATH` in your shell's environment. If defined as a path
 to a folder on the box, the Vagrantfile will use that folder as an image cache,
 loading tar archives from that folder to the daemon's image store on boot (with
 `docker load`), and saving running images as tar archives to the folder after
