@@ -78,7 +78,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.synced_folder "./data", "/data",
    # 33 is the www-data user/group in the ubuntu container
-   mount_options: ["uid=33","gid=33"] 
+   mount_options: ["uid=33","gid=33"]
 
 
 
@@ -99,7 +99,7 @@ Vagrant.configure(2) do |config|
          "in your environment to import local tar archives\ncontaining " +
          "images into docker's image-store" + snorm
   end
-  
+
   # A fix for speed issues with DNS resolution:
   #   http://serverfault.com/questions/453185/vagrant-virtualbox-dns-10-0-2-3-not-working?rq=1
   config.vm.provider "virtualbox" do |vb|
@@ -114,7 +114,7 @@ Vagrant.configure(2) do |config|
      cp -r /home/docker /mnt/sda2/home
      chown -R docker.staff /mnt/sda2/home/docker
 
-     #Switcheroo 
+     #Switcheroo
      mount --bind /mnt/sda2/home/docker /home/docker
      cd /home/docker
 
@@ -156,7 +156,7 @@ Vagrant.configure(2) do |config|
   # `vagrant up`), reinstalling from local directories
   config.vm.provision "recompose", type: "shell",
    run: "always", inline: <<-SHELL
-     #Switcheroo 
+     #Switcheroo
      mount --bind /mnt/sda2/home/docker /home/docker
      cd /home/docker
 
@@ -165,29 +165,7 @@ Vagrant.configure(2) do |config|
      sudo -u tc tce-load -ic python
      umount /mnt/sda2/tmp/tce/optional
 
-     cd /mnt/sda2/pip
-     echo "Running get-pip.py"
-     ./get-pip.py
-
-     pip install -b build -t install -U docker-compose
-
-     # Mixing of tabs and spaces is intentional (for the <<- operator)
-     cat <<- EOF > /usr/local/bin/docker-compose
-	#!/usr/local/bin/python
-
-	# -*- coding: utf-8 -*-
-	import re
-	import sys
-
-        # Need to point the PYTHONPATH at the right place
-	sys.path.append("/mnt/sda2/pip/install")
-
-	from compose.cli.main import main
-
-	if __name__ == '__main__':
-	    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?', '', sys.argv[0])
-	    sys.exit(main())
-	EOF
+     curl -L https://github.com/docker/compose/releases/download/1.4.2/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
 
      chmod 755 /usr/local/bin/docker-compose
 
@@ -202,7 +180,7 @@ Vagrant.configure(2) do |config|
          name=$( basename $file .tar )
 
          # Scan through the images we have and check if they are already loaded
-         for i in $allready_images; do 
+         for i in $allready_images; do
            if [[ $i == $name ]]; then
              # Skip this file
              echo "--> Skipping $name.tar (already loaded)"
@@ -236,7 +214,7 @@ Vagrant.configure(2) do |config|
          # The id must be truncated to the standard 12 characters
          runids="$runids "$(echo $newid | egrep -o '^[0-9a-f]{12}')
        done
-       
+
        for i in $(docker images -q); do
          if ! [[ -f $i.tar ]]; then
            echo "--> Saving $i.tar"
